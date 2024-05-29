@@ -1,16 +1,16 @@
 import { ReactNode, useState } from "react";
 
 interface IFriends {
-  id: number;
+  // id number or generated Id which is string
+  id: number | string;
   name: string;
   image: string;
   balance: number;
 }
 
 interface IButton {
-  isOpen?: boolean;
-  setIsOpen?: (val: boolean) => void;
-  children?: ReactNode;
+  children: ReactNode;
+  onClick?: () => void;
 }
 
 const initialFriends: IFriends[] = [
@@ -34,36 +34,44 @@ const initialFriends: IFriends[] = [
   },
 ];
 
+// Button
+function Button({ children, onClick }: IButton) {
+  return (
+    <button className="button" onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
 function App() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [showAddFriend, setShowAddFriend] = useState(false);
+  const [friends, setFriends] = useState(initialFriends);
+
+  function handleClick() {
+    setShowAddFriend((show) => !show);
+  }
+
+  function handleAddFriend(friend: IFriends) {
+    setFriends((friends) => [...friends, friend]);
+  }
+
   return (
     <div className="app">
       <div className="sidebar">
-        <FriendList />
-        {isOpen ? (
-          <>
-            {" "}
-            <FormAddFriend />{" "}
-            <Button isOpen={isOpen} setIsOpen={setIsOpen}>
-              Close
-            </Button>
-          </>
-        ) : (
-          <Button isOpen={isOpen} setIsOpen={setIsOpen}>
-            Add friend
-          </Button>
-        )}
+        <FriendList friends={friends} />
+        {showAddFriend && <FormAddFriend onAddFriend={handleAddFriend} />}
+        <Button onClick={handleClick}>{showAddFriend ? "Close" : "Add friend"}</Button>
       </div>
       <FormSplitBill />
     </div>
   );
 }
 
-function FriendList() {
+function FriendList({ friends }: { friends: IFriends[] }) {
   return (
     <ul>
-      {initialFriends.map((friend) => {
-        return <Friend friend={friend} key={friend.id} />;
+      {friends.map((friend: IFriends) => {
+        return <Friend friend={friend} key={friend.name} />;
       })}
     </ul>
   );
@@ -76,40 +84,47 @@ function Friend({ friend }: { friend: IFriends }) {
       <h3>{friend.name}</h3>
       {friend.balance < 0 && (
         <p className="red">
-          You owe {friend.name} ${Math.abs(friend.balance)}
+          You Owe {friend.name} ${friend.balance}
         </p>
       )}
       {friend.balance > 0 && (
         <p className="green">
-          {friend.name} owes you ${Math.abs(friend.balance)}
+          {friend.name} owes you ${friend.balance}
         </p>
       )}
       {friend.balance === 0 && <p>You and {friend.name} are even</p>}
-
-      <Button>select</Button>
+      <Button>Select</Button>
     </li>
   );
 }
 
-function Button({ children, isOpen, setIsOpen }: IButton) {
-  function handleClick() {
-    return setIsOpen(!isOpen);
+function FormAddFriend({ onAddFriend }: { onAddFriend: (friend: IFriends) => void }) {
+  const [name, setName] = useState("");
+  const [image, setImage] = useState("https://i.pravatar.cc/48");
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    // check if there is no values then display nothing
+    if (name === "" || image === "") return;
+
+    // Add new friend object
+    const id = crypto.randomUUID();
+    const newFriend = {
+      id,
+      name,
+      image: `${image}?=${id}`,
+      balance: 0,
+    };
+
+    onAddFriend(newFriend);
   }
 
   return (
-    <button className="button" onClick={handleClick}>
-      {children}
-    </button>
-  );
-}
-
-function FormAddFriend() {
-  return (
-    <form className="form-add-friend">
+    <form className="form-add-friend" onSubmit={handleSubmit}>
       <label>👬 Friend name</label>
-      <input type="text" />
+      <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
       <label>🌄 Image URL</label>
-      <input type="text" />
+      <input type="text" value={image} onChange={(e) => setImage(e.target.value)} />
       <Button>Add</Button>
     </form>
   );
@@ -118,8 +133,8 @@ function FormAddFriend() {
 function FormSplitBill() {
   return (
     <form className="form-split-bill">
-      <h2>Split a bill with X</h2>
-      <label>💰 Bill Value</label>
+      <h2>SPLIT A BILL WITH X</h2>
+      <label>💰 Bill value</label>
       <input type="text" />
       <label>🧍‍♂️ Your expense</label>
       <input type="text" />
